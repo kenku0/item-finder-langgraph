@@ -1,0 +1,7 @@
+# Private instance - safe to disable all bot detection
+[botdetection.ip_limit]
+link_token = false
+
+[botdetection.ip_lists]
+block_ip = []
+pass_ip = []

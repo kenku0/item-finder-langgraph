@@ -1,0 +1,35 @@
+# Use default settings but only keep specified engines
+use_default_settings:
+  engines:
+    keep_only:
+      - brave
+      - wikipedia
+      - reddit
+
+server:
+  secret_key: "1805512195946892c289e913d3cb1191f20ed48335e8e868877aeb4b31b06b79"
+  limiter: false
+  image_proxy: true
+  port: 8080
+  bind_address: "0.0.0.0"
+  base_url: /
+
+ui:
+  static_use_hash: true
+  theme: simple
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+  formats:
+    - html
+    - json
+
+outgoing:
+  request_timeout: 6.0
+  max_request_timeout: 10.0
+  pool_connections: 50
+  pool_maxsize: 10
+  useragent_suffix: "OpenWebUI-LocalInstance/1.0"
+  enable_http2: true

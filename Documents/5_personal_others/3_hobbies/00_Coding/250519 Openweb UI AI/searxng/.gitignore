@@ -1,0 +1,140 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+VENV/
+.venv
+.env
+
+# Virtual environments
+bin/
+include/
+lib/
+lib64/
+share/
+pyvenv.cfg
+pip-selfcheck.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+*.err
+*.out
+
+# Testing
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+htmlcov/
+
+# Build
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+docs/_build/
+target/
+
+# SearXNG specific
+searx.log
+searx/settings_robot.yml
+searx/settings_uwsgi.yml
+searx/static/themes/*/img/favicon.png
+searx/static/themes/*/css/*.min.css
+searx/static/themes/*/css/*.min.css.map
+searx/static/themes/*/js/*.min.js
+.nvm
+node_modules/
+
+# Local configuration
+settings.local.yml
+limiter.local.toml
+*.local
+*.secret
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.cache
+tmp/
+temp/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Security
+*.pem
+*.key
+*.crt
+*.csr
+secrets/
+.secrets/
+
+# Claude/AI Tools
+.claude/
+.codeium/
+.copilot/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+.webassets-cache
+.scrapy
+celerybeat-schedule
+celerybeat.pid
+instance/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+cython_debug/

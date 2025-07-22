@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng-openwebui
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+      - ./limiter.toml:/etc/searxng/limiter.toml:ro
+      - ./uwsgi.ini:/etc/searxng/uwsgi.ini:ro
+      - searxng-data:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-1805512195946892c289e913d3cb1191f20ed48335e8e868877aeb4b31b06b79}
+      - SEARXNG_BIND_ADDRESS=0.0.0.0:8080
+      - SEARXNG_IMAGE_PROXY=true
+      - SEARXNG_DEBUG=false
+    networks:
+      - searxng-network
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
+      - /var/log
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Redis cache for better performance
+  redis:
+    image: redis:7-alpine
+    container_name: searxng-redis
+    restart: unless-stopped
+    command: redis-server --save 30 1 --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - searxng-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Caddy reverse proxy with automatic HTTPS
+  caddy:
+    image: caddy:2-alpine
+    container_name: searxng-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - searxng-network
+    depends_on:
+      - searxng
+    profiles:
+      - with-caddy
+
+networks:
+  searxng-network:
+    driver: bridge
+    name: searxng-network
+
+volumes:
+  searxng-data:
+    driver: local
+  redis-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local

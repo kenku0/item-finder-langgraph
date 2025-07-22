@@ -1,0 +1,94 @@
+name: Test SearXNG Configuration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-config:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml toml jsonschema
+
+      - name: Validate YAML files
+        run: |
+          python -c "
+          import yaml
+          import sys
+          
+          files = ['settings.yml']
+          for file in files:
+              try:
+                  with open(file, 'r') as f:
+                      yaml.safe_load(f)
+                  print(f'✅ {file} is valid YAML')
+              except Exception as e:
+                  print(f'❌ {file} has errors: {e}')
+                  sys.exit(1)
+          "
+
+      - name: Validate TOML files
+        run: |
+          python -c "
+          import toml
+          import sys
+          
+          files = ['limiter.toml']
+          for file in files:
+              try:
+                  with open(file, 'r') as f:
+                      toml.load(f)
+                  print(f'✅ {file} is valid TOML')
+              except Exception as e:
+                  print(f'❌ {file} has errors: {e}')
+                  sys.exit(1)
+          "
+
+      - name: Test Docker setup
+        run: |
+          docker-compose config
+          docker-compose up -d
+          sleep 10
+          curl -f http://localhost:8080 || exit 1
+          docker-compose down
+
+      - name: Run integration tests
+        run: |
+          docker-compose up -d
+          sleep 15
+          
+          # Test search endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/search?q=test&format=json")
+          if [ "$response" -eq 200 ]; then
+              echo "✅ Search endpoint is working"
+          else
+              echo "❌ Search endpoint returned $response"
+              docker-compose logs
+              exit 1
+          fi
+          
+          # Test health endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/healthz")
+          if [ "$response" -eq 200 ]; then
+              echo "✅ Health endpoint is working"
+          else
+              echo "❌ Health endpoint returned $response"
+              docker-compose logs
+              exit 1
+          fi
+          
+          docker-compose down
