@@ -15,6 +15,7 @@ struct ChatView: View {
   @State private var isUserAtBottom = true
   @State private var autoScrollTimer: Timer?
   @State private var showScrollLimitAlert = false
+  @FocusState private var isInputFocused: Bool
   
   private let scrollThreshold: CGFloat = 100
   private let generationDebounceInterval: TimeInterval = 1.0
@@ -24,10 +25,7 @@ struct ChatView: View {
     ForEach(viewModel.currentConversation.messages.filter { !$0.isAutoContinuation }) { message in
       MessageBubbleView(message: message)
         .id(message.id)
-        .transition(.asymmetric(
-          insertion: .opacity.combined(with: .scale(scale: 0.8)),
-          removal: .opacity
-        ))
+        // No animation to prevent any layout jumps
         .onAppear {
           if isLastMessage(message) {
             checkScrollPositionForGeneration()
@@ -72,7 +70,7 @@ struct ChatView: View {
         .progressViewStyle(CircularProgressViewStyle(tint: .white))
         .scaleEffect(0.8)
         .id("loading")
-        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+        // No animation to prevent layout shifts
         .padding(.vertical, 20)
     }
   }
@@ -142,25 +140,16 @@ struct ChatView: View {
     
                   updateUIVisibility()
                 }
-                .onChange(of: viewModel.currentConversation.messages.last?.content) {
-                    let visibleMessages = viewModel.currentConversation.messages.filter { !$0.isAutoContinuation }
-                    if isUserAtBottom, let lastMessageID = visibleMessages.last?.id {
-                        withAnimation(.linear(duration: 1.0)) {
-                            proxy.scrollTo(lastMessageID, anchor: .bottom)
-                        }
-                    }
-                }
-                .onChange(of: viewModel.currentConversation.messages.count) {
-                  withAnimation(.easeOut(duration: 0.5)) {
-                    let visibleMessages = viewModel.currentConversation.messages.filter { !$0.isAutoContinuation }
-                    if let lastMessage = visibleMessages.last {
-                      proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
-                  }
-                }
+                // Removed fast content-based scrolling to allow slow auto-scroll only
+                // Allow auto-scroll to handle scrolling during generation
                 .onChange(of: viewModel.isGenerating) { isGenerating in
                     if isGenerating && isUserAtBottom {
-                        startAutoScroll(proxy: proxy)
+                        // Start slow auto-scroll after a delay, no initial jump
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            if viewModel.isGenerating && isUserAtBottom {
+                                startAutoScroll(proxy: proxy)
+                            }
+                        }
                     } else {
                         stopAutoScroll()
                     }
@@ -182,7 +171,7 @@ struct ChatView: View {
               )
               
               if !hideUIElements {
-                InputBarView(onSendMessage: handleSendMessage)
+                InputBarView(isFocused: $isInputFocused, onSendMessage: handleSendMessage)
                   .transition(.move(edge: .bottom).combined(with: .opacity))
               }
           }
@@ -204,6 +193,12 @@ struct ChatView: View {
                     }
                 })
                 .transition(.opacity)
+            }
+        }
+        .onAppear {
+            // Auto-focus the input field when view appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                isInputFocused = true
             }
         }
         .onDisappear {
@@ -233,12 +228,21 @@ struct ChatView: View {
   
   private func startAutoScroll(proxy: ScrollViewProxy) {
     stopAutoScroll()
-    autoScrollTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+    
+    // Very slow, time-based scroll - like a reading pace
+    var scrollCount = 0
+    autoScrollTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
       DispatchQueue.main.async {
-        let visibleMessages = viewModel.currentConversation.messages.filter { !$0.isAutoContinuation }
-        if let lastMessageID = visibleMessages.last?.id {
-          withAnimation(.linear(duration: 0.05)) {
-            proxy.scrollTo(lastMessageID, anchor: .bottom)
+        // Only continue if user hasn't scrolled away and AI is still generating
+        if isUserAtBottom && viewModel.isGenerating {
+          scrollCount += 1
+          
+          // Every tick, scroll down very slightly
+          // Using a small offset to create smooth motion
+          withAnimation(.linear(duration: 0.2)) {
+            // This creates a gentle downward drift
+            let offset = CGFloat(scrollCount) * 0.002 // Very small incremental offset
+            proxy.scrollTo("scrollTrigger", anchor: UnitPoint(x: 0.5, y: 1.0 - offset))
           }
         }
       }

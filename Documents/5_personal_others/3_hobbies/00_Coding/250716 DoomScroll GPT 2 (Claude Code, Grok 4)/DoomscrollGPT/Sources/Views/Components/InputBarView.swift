@@ -6,6 +6,7 @@ struct InputBarView: View {
   @State private var isRecording = false
   @StateObject private var voiceService = VoiceService()
   @EnvironmentObject var subscriptionManager: SubscriptionManager
+  @FocusState.Binding var isFocused: Bool
   
   let onSendMessage: (String) -> Void
   
@@ -26,6 +27,7 @@ struct InputBarView: View {
             .foregroundColor(.white)
             .font(.system(size: 16))
             .disabled(isRecording)
+            .focused($isFocused)
             .onSubmit(sendMessage)
           
           Button(action: toggleVoiceMode) {
@@ -102,9 +104,17 @@ struct InputBarView: View {
 }
 
 #Preview {
-  InputBarView { message in
-    print("Sent: \(message)")
+  struct PreviewWrapper: View {
+    @FocusState private var isFocused: Bool
+    
+    var body: some View {
+      InputBarView(isFocused: $isFocused) { message in
+        print("Sent: \(message)")
+      }
+      .background(Color.black)
+      .environmentObject(SubscriptionManager())
+    }
   }
-  .background(Color.black)
-  .environmentObject(SubscriptionManager())
+  
+  return PreviewWrapper()
 }
